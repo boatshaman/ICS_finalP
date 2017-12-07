@@ -46,7 +46,9 @@ class Server:
             code = msg[0]
 
             if code == M_LOGIN:
-                name = msg[1:]
+                op = msg[1:].split(':')
+                name = op[0]
+                key = op[1]
                 if self.group.is_member(name) != True:
                     #move socket from new clients list to logged clients
                     self.new_clients.remove(sock)

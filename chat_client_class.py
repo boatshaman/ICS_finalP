@@ -4,7 +4,7 @@ import select
 import sys
 from chat_utils import *
 import client_state_machine as csm
-import Crypto.PublicKey import RSA
+from Crypto.PublicKey import RSA
 
 import threading
 
@@ -46,7 +46,7 @@ class Client:
         return
         
     def send(self, msg, pubkey):
-        mysend(self.socket, msg + ':' + pubkey)
+        mysend(self.socket, msg + ':' + pubkey.decode('utf-8'))
         
     def recv(self):
         return myrecv(self.socket)
@@ -74,7 +74,7 @@ class Client:
         if len(my_msg) > 0:
             self.name = my_msg
             msg = M_LOGIN + self.name
-            self.send(msg, RSA.publickey().exportKey())
+            self.send(msg, self.rsa.publickey().exportKey())
             response = self.recv()
             if response == M_LOGIN+'ok':
                 self.state = S_LOGGEDIN
