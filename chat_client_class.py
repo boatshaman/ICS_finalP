@@ -17,6 +17,8 @@ class Client:
         self.local_msg = ''
         self.peer_msg = ''
         self.rsa = RSA.generate(2048)
+
+
         
     def quit(self):
         self.socket.shutdown(socket.SHUT_RDWR)
@@ -104,6 +106,7 @@ class Client:
 
     def run_chat(self):
         self.init_chat()
+        self.sm.set_rsa(self.rsa)
         self.system_msg += 'Welcome to ICS chat\n'
         self.system_msg += 'Please enter your name: '
         self.output()

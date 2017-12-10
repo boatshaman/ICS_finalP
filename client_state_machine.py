@@ -5,14 +5,18 @@ Created on Sun Apr  5 00:00:32 2015
 @author: zhengzhang
 """
 from chat_utils import *
+import json
+from Crypto.PublicKey import RSA
 
 class ClientSM:
     def __init__(self, s):
         self.state = S_OFFLINE
-        self.peer = ''
+        self.peer = []
         self.me = ''
         self.out_msg = ''
         self.s = s
+        self.peer_keys = {}
+        self.rsa = None
 
     def set_state(self, state):
         self.state = state
@@ -25,14 +29,17 @@ class ClientSM:
 
     def get_myname(self):
         return self.me
+
+    def set_rsa(self, rsa_obj):
+        self.rsa = rsa_obj
         
     def connect_to(self, peer):
         msg = M_CONNECT + peer
         mysend(self.s, msg)
         response = myrecv(self.s)
         if response == (M_CONNECT+'ok'):
-            self.peer = peer
-            self.out_msg += 'You are connected with '+ self.peer + '\n'
+            self.peer = [peer]
+            self.out_msg += 'You are connected with '+ peer + '\n'
             return (True)
         elif response == (M_CONNECT + 'busy'):
             self.out_msg += 'User is busy. Please try again later\n'
@@ -45,8 +52,23 @@ class ClientSM:
     def disconnect(self):
         msg = M_DISCONNECT
         mysend(self.s, msg)
-        self.out_msg += 'You are disconnected from ' + self.peer + '\n'
-        self.peer = ''
+        self.out_msg += 'You are disconnected from ' + ' '.join(self.peer) + '\n'
+        self.peer = []
+
+    def req_keys(self):
+        mysend(self.s, K_RECV)
+        resp = myrecv(self.s)
+        self.peer_keys = json.loads(resp)
+
+    def prep_msgs(self, msg):
+        msg_dic = {}
+        msg = msg.encode('utf-8')
+        for k, v in self.peer_keys.items():
+            ciph = RSA.importKey(v)
+            msg_dic[k] = (ciph.encrypt(msg, None)[0]).decode('utf-8', 'backslashreplace')
+        return json.dumps(msg_dic)
+
+
 
     def proc(self, my_msg, peer_code, peer_msg):
         self.out_msg = ''
@@ -77,6 +99,7 @@ class ClientSM:
                 elif my_msg[0] == 'c':
                     peer = my_msg[1:].strip()
                     if self.connect_to(peer) == True:
+                        self.req_keys()
                         self.state = S_CHATTING
                         self.out_msg += 'Connect to ' + peer + '. Chat away!\n\n'
                         self.out_msg += '-----------------------------------\n'
@@ -106,9 +129,10 @@ class ClientSM:
                     
             if len(peer_msg) > 0:
                 if peer_code == M_CONNECT:
-                    self.peer = peer_msg
-                    self.out_msg += 'Request from ' + self.peer + '\n'
-                    self.out_msg += 'You are connected with ' + self.peer 
+                    self.peer = [peer_msg]
+                    self.req_keys()
+                    self.out_msg += 'Request from ' + peer_msg + '\n'
+                    self.out_msg += 'You are connected with ' + peer_msg 
                     self.out_msg += '. Chat away!\n\n'
                     self.out_msg += '------------------------------------\n'
                     self.state = S_CHATTING
@@ -119,17 +143,21 @@ class ClientSM:
 #==============================================================================
         elif self.state == S_CHATTING:
             if len(my_msg) > 0:     # My stuff, going out
-                mysend(self.s, M_EXCHANGE + "[" + self.me + "] " + my_msg)
+                encoded_msgs = self.prep_msgs("[" + self.me + "] " + my_msg)
+                mysend(self.s, M_EXCHANGE + encoded_msgs)
                 if my_msg == 'bye':
                     self.disconnect()
                     self.state = S_LOGGEDIN
-                    self.peer = ''
+                    self.peer = []
             if len(peer_msg) > 0:   # Peer's stuff, coming in
                 # New peer joins
                 if peer_code == M_CONNECT:
                     self.out_msg += "(" + peer_msg + " joined)\n"
+                    self.peer.append(peer_msg)
+                    self.req_keys()
                 else:
-                    self.out_msg += peer_msg
+                    print(peer_msg)
+                    self.out_msg += self.rsa.decrypt(peer_msg.encode('utf-8', 'unicode_escape')).decode('utf-8')
 
             # I got bumped out
             if peer_code == M_DISCONNECT:

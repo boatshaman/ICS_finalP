@@ -14,6 +14,7 @@ import indexer
 import pickle as pkl
 from chat_utils import *
 import chat_group as grp
+import json
 
 class Server:
     def __init__(self):
@@ -31,6 +32,7 @@ class Server:
         self.indices={}
         # sonnet
         self.sonnet = indexer.PIndex('AllSonnets.txt')
+        self.pubKeys = {} # dictionary of the public keys
 
     def new_client(self, sock):
         #add to all sockets and to new clients
@@ -63,6 +65,7 @@ class Server:
                             self.indices[name] = indexer.Index(name)
                     print(name + ' logged in')
                     self.group.join(name)
+                    self.pubKeys[name] = key
                     mysend(sock, M_LOGIN + 'ok')
                 else: #a client under this name has already logged in
                     mysend(sock, M_LOGIN + 'duplicate')
@@ -116,14 +119,22 @@ class Server:
 #==============================================================================
             elif code == M_EXCHANGE:
                 from_name = self.logged_sock2name[from_sock]
-                the_guys = self.group.list_me(from_name)
-                said = msg[1:]
-                said2 = text_proc(said, from_name)
-                self.indices[from_name].add_msg_and_index(said2)
-                for g in the_guys[1:]:
-                    to_sock = self.logged_name2sock[g]
-                    self.indices[g].add_msg_and_index(said2)                
-                    mysend(to_sock, msg)
+                #the_guys = self.group.list_me(from_name)
+                #said = msg[1:]
+                #said2 = text_proc(said, from_name)
+                #self.indices[from_name].add_msg_and_index(said2)
+                #for g in the_guys[1:]:
+                    #to_sock = self.logged_name2sock[g]
+                    #self.indices[g].add_msg_and_index(said2)                
+                    #mysend(to_sock, msg)
+                print('!!!')
+                print(msg)
+                msgs = json.loads(msg[1:])
+                for k, v in msgs.items():
+                    to_sock = self.logged_name2sock[k]
+                    mysend(to_sock, v)
+
+
 #==============================================================================
 #                 listing available peers
 #==============================================================================
@@ -172,6 +183,15 @@ class Server:
                     g = the_guys.pop()
                     to_sock = self.logged_name2sock[g]
                     mysend(to_sock, M_DISCONNECT)
+
+            #send updated dictionary of public keys to client
+            elif code == K_RECV:
+                from_name = self.logged_sock2name[from_sock]
+                the_guys = self.group.list_me(from_name)
+                new_dic = {x : self.pubKeys[x] for x in the_guys}
+                dump_dic = json.dumps(new_dic)
+                mysend(from_sock, dump_dic)
+
 #==============================================================================
 #                 the "from" guy really, really has had enough
 #==============================================================================
