@@ -127,7 +127,7 @@ class Server:
                     #to_sock = self.logged_name2sock[g]
                     #self.indices[g].add_msg_and_index(said2)                
                     #mysend(to_sock, msg)
-                print('!!!')
+                print('json loaded dictionary: ')
                 print(msg)
                 msgs = json.loads(msg[1:])
                 for k, v in msgs.items():
@@ -183,7 +183,11 @@ class Server:
                 if len(the_guys) == 1:  # only one left
                     g = the_guys.pop()
                     to_sock = self.logged_name2sock[g]
-                    mysend(to_sock, M_DISCONNECT)
+                    mysend(to_sock, M_DISCONNECT + from_name)
+                else:
+                    for g in the_guys:
+                        to_sock = self.logged_name2sock[g]
+                        mysend(to_sock, M_DISCONNECT + from_name)
 
             #send updated dictionary of public keys to client
             elif code == K_RECV:

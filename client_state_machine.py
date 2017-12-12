@@ -39,7 +39,7 @@ class ClientSM:
         response = myrecv(self.s)
         if response == (M_CONNECT+'ok'):
             self.peer = [peer]
-            self.out_msg += 'You are connected with '+ peer + '\n'
+            self.out_msg += 'Connecting to '+ peer + '...\n'
             return (True)
         elif response == (M_CONNECT + 'busy'):
             self.out_msg += 'User is busy. Please try again later\n'
@@ -52,7 +52,7 @@ class ClientSM:
     def disconnect(self):
         msg = M_DISCONNECT
         mysend(self.s, msg)
-        self.out_msg += 'You are disconnected from ' + ' '.join(self.peer) + '\n'
+        self.out_msg += 'You are disconnected from ' + ' & '.join(self.peer) + '\n'
         self.peer = []
 
     def req_keys(self):
@@ -101,7 +101,7 @@ class ClientSM:
                     if self.connect_to(peer) == True:
                         self.req_keys()
                         self.state = S_CHATTING
-                        self.out_msg += 'Connect to ' + peer + '. Chat away!\n\n'
+                        self.out_msg += 'Connected to ' + peer + '. Chat away!\n\n'
                         self.out_msg += '-----------------------------------\n'
                     else:
                         self.out_msg += 'Connection unsuccessful\n'
@@ -154,17 +154,15 @@ class ClientSM:
                 if peer_code == M_CONNECT:
                     self.out_msg += "(" + peer_msg + " joined)\n"
                     self.peer.append(peer_msg)
-                    self.req_keys()
+                    self.req_keys() #request new set of peer public keys
                 else:
-                    #print(peer_msg)
-                    #p_mes = eval(peer_msg)
-                    #print('after eval() : ')
-                    #print(p_mes)
-                    #self.out_msg += self.rsa.decrypt(p_mes).decode('utf-8')
                     self.out_msg += peer_msg
             # I got bumped out
             if peer_code == M_DISCONNECT:
-                self.state = S_LOGGEDIN
+                self.out_msg += " has disconnected\n"
+                self.peer.remove(peer_msg)
+                if(len(self.peer) == 0):
+                    self.state = S_LOGGEDIN
 
             # Display the menu again
             if self.state == S_LOGGEDIN:
