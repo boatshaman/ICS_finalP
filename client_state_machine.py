@@ -65,7 +65,7 @@ class ClientSM:
         msg = msg.encode('utf-8')
         for k, v in self.peer_keys.items():
             ciph = RSA.importKey(v)
-            msg_dic[k] = (ciph.encrypt(msg, None)[0]).decode('utf-8', 'backslashreplace')
+            msg_dic[k] = str(ciph.encrypt(msg, None)[0])
         return json.dumps(msg_dic)
 
 
@@ -156,9 +156,12 @@ class ClientSM:
                     self.peer.append(peer_msg)
                     self.req_keys()
                 else:
-                    print(peer_msg)
-                    self.out_msg += self.rsa.decrypt(peer_msg.encode('utf-8', 'unicode_escape')).decode('utf-8')
-
+                    #print(peer_msg)
+                    #p_mes = eval(peer_msg)
+                    #print('after eval() : ')
+                    #print(p_mes)
+                    #self.out_msg += self.rsa.decrypt(p_mes).decode('utf-8')
+                    self.out_msg += peer_msg
             # I got bumped out
             if peer_code == M_DISCONNECT:
                 self.state = S_LOGGEDIN

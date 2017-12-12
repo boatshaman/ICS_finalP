@@ -132,7 +132,8 @@ class Server:
                 msgs = json.loads(msg[1:])
                 for k, v in msgs.items():
                     to_sock = self.logged_name2sock[k]
-                    mysend(to_sock, v)
+                    if(to_sock != from_sock):
+                        mysend(to_sock, v)
 
 
 #==============================================================================

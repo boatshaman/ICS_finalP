@@ -63,7 +63,10 @@ class Client:
         if self.socket in read:
             peer_msg = self.recv()
             peer_code = peer_msg[0]
-            peer_msg = peer_msg[1:]
+            try:
+                peer_msg = self.rsa.decrypt(eval(peer_msg)).decode('utf-8')
+            except:
+                peer_msg = peer_msg[1:]
         return my_msg, peer_code, peer_msg
         
     def output(self):
@@ -125,13 +128,9 @@ class Client:
 #==============================================================================
     def proc(self):
         my_msg, peer_code, peer_msg = self.get_msgs()
-        peer_msg = self.decrypt(peer_msg)
+        
         self.system_msg += self.sm.proc(my_msg, peer_code, peer_msg)
 
 
-    def decrypt(self, msg):
-        try:
-            return self.RSA.decrypt(msg)
-        except:
-            return msg
+    
 
